@@ -1,0 +1,88 @@
+CloudWatch Agent Configuration for EC2
+---------------------------------------
+
+Step 1: Connect to Your EC2 Instance
+
+ssh -i /path/to/your/private-key.pem ec2-user@your-ec2-public-ip
+
+Step 2: Install the CloudWatch Agent
+
+sudo yum install amazon-cloudwatch-agent -y
+
+Step 3: Create the CloudWatch Agent Configuration File
+
+Create a file named cloudwatch-config.json:
+   {
+    "agent": {
+        "metrics_collection_interval": 60,
+        "run_as_user": "root"
+    },
+    "metrics": {
+        "namespace": "MyApplication",
+        "metrics_collected": {
+            "cpu": {
+                "measurement": [
+                    "cpu_usage_idle",
+                    "cpu_usage_iowait",
+                    "cpu_usage_user",
+                    "cpu_usage_system"
+                ],
+                "metrics_collection_interval": 60
+            },
+            "mem": {
+                "measurement": [
+                    "mem_used_percent",
+                    "mem_available_percent"
+                ],
+                "metrics_collection_interval": 60
+            },
+            "disk": {
+                "measurement": [
+                    "disk_usage_percent"
+                ],
+                "metrics_collection_interval": 60
+            }
+        }
+    }
+}
+
+Step 4: Configure and Start the CloudWatch Agent
+
+Copy the configuration file to the agent directory:
+
+sudo cp cloudwatch-config.json /opt/aws/amazon-cloudwatch-agent/bin/
+
+sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c file:/opt/aws/amazon-cloudwatch-agent/bin/cloudwatch-config.json -s
+
+Enable the agent to start on boot:
+
+sudo systemctl enable amazon-cloudwatch-agent
+==========================================================================================
+
+Set Up CloudWatch Alarms
+-------------------------
+Step 1: Create an Alarm for CPU Usage
+=====================================
+1. Go to the CloudWatch Console.
+2. Navigate to “Alarms” and click “Create alarm.”
+3. Select “Select metric” and choose:
+   Category: EC2
+   Metric Name: CPUUtilization
+   Instance ID: Choose the instance you want to monitor.
+4. Configure the alarm:
+   Threshold type: Static
+   Whenever CPUUtilization is: Greater than 80
+   for at least: 1 out of 1 data points (or adjust as needed)
+5. Configure actions:
+   Send a notification: Choose or create an SNS topic for email notifications.
+6. Click “Create alarm.”
+
+Step 2: Set Up SNS for Email Notifications
+==========================================
+1. Go to the SNS Console.
+2. Click “Create topic” and select “Standard.”
+   Enter a name for the topic and create it.
+3. Select your newly created topic.
+4. Click “Create subscription.”
+   Set Protocol to “Email” and enter your email address.
+   Confirm the subscription in the email sent to you.
